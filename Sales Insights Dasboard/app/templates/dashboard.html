@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Analytics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .dashboard-title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+            letter-spacing: -0.5px;
+        }
+        .chart-container {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .insight-box {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        body {
+            background-color: #f5f5f5;
+            padding: 2rem 0;
+        }
+        .filters {
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="dashboard-title text-center">Sales Insights Dashboard</h1>
+        
+        <div class="filters">
+            <div class="row">
+                <div class="col-md-3">
+                    <select class="form-select" id="regionFilter">
+                        <option value="">All Regions</option>
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                        <option value="East">East</option>
+                        <option value="West">West</option>
+                        <option value="Central">Central</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Home & Garden">Home & Garden</option>
+                        <option value="Books">Books</option>
+                        <option value="Sports">Sports</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Monthly Revenue Trend -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="revenueTrend"></div>
+                    <div class="insight-box">
+                        <strong>AI Insight:</strong>
+                        <span id="revenueTrendInsight">{{ insights.revenue_trend }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top 5 Products -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="topProducts"></div>
+                    <div class="insight-box">
+                        <strong>AI Insight:</strong>
+                        <span id="topProductsInsight">{{ insights.top_products }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Region Performance Heatmap -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="regionHeatmap"></div>
+                    <div class="insight-box">
+                        <strong>AI Insight:</strong>
+                        <span id="regionInsight">{{ insights.region_performance }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profit Margins -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="profitMargins"></div>
+                    <div class="insight-box">
+                        <strong>AI Insight:</strong>
+                        <span id="marginsInsight">{{ insights.profit_margins }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customer Segments -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="customerSegments"></div>
+                    <div class="insight-box">
+                        <strong>AI Insight:</strong>
+                        <span id="segmentsInsight">{{ insights.customer_segments }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Discount Correlation -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="discountCorrelation"></div>
+                </div>
+            </div>
+            
+            <!-- AOV Trend -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="aovTrend"></div>
+                </div>
+            </div>
+            
+            <!-- YoY Growth -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="yoyGrowth"></div>
+                </div>
+            </div>
+            
+            <!-- Cost Outliers -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="costOutliers"></div>
+                </div>
+            </div>
+            
+            <!-- Cumulative Profit -->
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <div id="cumulativeProfit"></div>
+                </div>
+            </div>
+            
+            <!-- Cross Table -->
+            <div class="col-12">
+                <div class="chart-container">
+                    <h3 class="h5 mb-3">Sales Records Distribution</h3>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="crossTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Category</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the charts data from the server-side template
+        const chartsData = {
+            revenue_trend: JSON.parse('{{ charts.revenue_trend|safe }}'),
+            top_products: JSON.parse('{{ charts.top_products|safe }}'),
+            heatmap: JSON.parse('{{ charts.heatmap|safe }}'),
+            margins: JSON.parse('{{ charts.margins|safe }}'),
+            segment_pie: JSON.parse('{{ charts.segment_pie|safe }}'),
+            discount_corr: JSON.parse('{{ charts.discount_corr|safe }}'),
+            aov_trend: JSON.parse('{{ charts.aov_trend|safe }}'),
+            yoy_growth: JSON.parse('{{ charts.yoy_growth|safe }}'),
+            outliers: JSON.parse('{{ charts.outliers|safe }}'),
+            cum_profit: JSON.parse('{{ charts.cum_profit|safe }}')
+        };
+
+        // Function to create plots
+        function renderPlot(elementId, data, layout) {
+            try {
+                Plotly.newPlot(elementId, data, layout);
+            } catch (error) {
+                console.error(`Error rendering plot ${elementId}:`, error);
+            }
+        }
+        
+        // Render all charts when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Render other charts
+            Object.entries({
+                'revenueTrend': chartsData.revenue_trend,
+                'topProducts': chartsData.top_products,
+                'regionHeatmap': chartsData.heatmap,
+                'profitMargins': chartsData.margins,
+                'customerSegments': chartsData.segment_pie,
+                'discountCorrelation': chartsData.discount_corr,
+                'aovTrend': chartsData.aov_trend,
+                'yoyGrowth': chartsData.yoy_growth,
+                'costOutliers': chartsData.outliers,
+                'cumulativeProfit': chartsData.cum_profit
+            }).forEach(([elementId, chartData]) => {
+                try {
+                    if (chartData && chartData.data && chartData.layout) {
+                        renderPlot(elementId, chartData.data, chartData.layout);
+                    } else {
+                        console.warn(`Missing or invalid data for ${elementId}`);
+                    }
+                } catch (error) {
+                    console.error(`Error rendering ${elementId}:`, error);
+                }
+            });
+            renderPlot('topProducts', chartsData.top_products.data, chartsData.top_products.layout);
+            renderPlot('regionHeatmap', chartsData.heatmap.data, chartsData.heatmap.layout);
+            renderPlot('profitMargins', chartsData.margins.data, chartsData.margins.layout);
+            renderPlot('customerSegments', chartsData.segment_pie.data, chartsData.segment_pie.layout);
+            renderPlot('discountCorrelation', chartsData.discount_corr.data, chartsData.discount_corr.layout);
+            renderPlot('aovTrend', chartsData.aov_trend.data, chartsData.aov_trend.layout);
+            renderPlot('yoyGrowth', chartsData.yoy_growth.data, chartsData.yoy_growth.layout);
+            renderPlot('costOutliers', chartsData.outliers.data, chartsData.outliers.layout);
+            renderPlot('cumulativeProfit', chartsData.cum_profit.data, chartsData.cum_profit.layout);
+        });
+        
+        // Function to update charts based on filters
+        function updateCharts() {
+            const region = document.getElementById('regionFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            
+            // Show loading state
+            document.querySelectorAll('.chart-container').forEach(container => {
+                container.style.opacity = '0.5';
+            });
+            
+            // Make AJAX call to get filtered data
+            fetch(`/api/filter-data?region=${encodeURIComponent(region)}&category=${encodeURIComponent(category)}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Parse the JSON strings back into objects
+                    const parsedData = {
+                        revenue_trend: JSON.parse(data.revenue_trend),
+                        top_products: JSON.parse(data.top_products),
+                        heatmap: JSON.parse(data.heatmap),
+                        margins: JSON.parse(data.margins),
+                        segment_pie: JSON.parse(data.segment_pie),
+                        discount_corr: JSON.parse(data.discount_corr),
+                        aov_trend: JSON.parse(data.aov_trend),
+                        yoy_growth: JSON.parse(data.yoy_growth),
+                        outliers: JSON.parse(data.outliers),
+                        cum_profit: JSON.parse(data.cum_profit)
+                    };
+
+                    // Update cross table
+                    if (data.cross_table) {
+                        const crossTableBody = document.querySelector('#crossTable tbody');
+                        crossTableBody.innerHTML = '';
+                        data.cross_table.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${row.Region || 'All Regions'}</td>
+                                <td>${row.Category || 'All Categories'}</td>
+                                <td class="text-end">${row.Count.toLocaleString()}</td>
+                            `;
+                            crossTableBody.appendChild(tr);
+                        });
+                    }
+                    
+                    // Update each chart
+                    renderPlot('revenueTrend', parsedData.revenue_trend.data, parsedData.revenue_trend.layout);
+                    renderPlot('topProducts', parsedData.top_products.data, parsedData.top_products.layout);
+                    renderPlot('regionHeatmap', parsedData.heatmap.data, parsedData.heatmap.layout);
+                    renderPlot('profitMargins', parsedData.margins.data, parsedData.margins.layout);
+                    renderPlot('customerSegments', parsedData.segment_pie.data, parsedData.segment_pie.layout);
+                    renderPlot('discountCorrelation', parsedData.discount_corr.data, parsedData.discount_corr.layout);
+                    renderPlot('aovTrend', parsedData.aov_trend.data, parsedData.aov_trend.layout);
+                    renderPlot('yoyGrowth', parsedData.yoy_growth.data, parsedData.yoy_growth.layout);
+                    renderPlot('costOutliers', parsedData.outliers.data, parsedData.outliers.layout);
+                    renderPlot('cumulativeProfit', parsedData.cum_profit.data, parsedData.cum_profit.layout);
+                    
+                    // Restore opacity
+                    document.querySelectorAll('.chart-container').forEach(container => {
+                        container.style.opacity = '1';
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching filtered data:', error);
+                    // Restore opacity on error
+                    document.querySelectorAll('.chart-container').forEach(container => {
+                        container.style.opacity = '1';
+                    });
+                });
+        }
+        
+        // Add filter event listeners
+        document.getElementById('regionFilter').addEventListener('change', updateCharts);
+        document.getElementById('categoryFilter').addEventListener('change', updateCharts);
+    </script>
+</body>
+</html>
